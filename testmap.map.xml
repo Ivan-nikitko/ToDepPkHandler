@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-map xmlns="http://cayenne.apache.org/schema/11/modelMap"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://cayenne.apache.org/schema/11/modelMap https://cayenne.apache.org/schema/11/modelMap.xsd"
+	 project-version="11">
+	<property name="defaultPackage" value="org.apache.cayenne.testdo.testmap"/>
+	<property name="defaultSuperclass" value="org.apache.cayenne.CayenneDataObject"/>
+	<procedure name="cayenne_tst_out_proc">
+		<procedure-parameter name="in_param" type="INTEGER" direction="in"/>
+		<procedure-parameter name="out_param" type="INTEGER" direction="out"/>
+	</procedure>
+	<procedure name="cayenne_tst_select_proc">
+		<procedure-parameter name="aName" type="VARCHAR" length="254" direction="in"/>
+		<procedure-parameter name="paintingPrice" type="INTEGER" direction="in"/>
+	</procedure>
+	<procedure name="cayenne_tst_upd_proc">
+		<procedure-parameter name="paintingPrice" type="INTEGER" direction="in"/>
+	</procedure>
+	<procedure name="cayenne_tst_upd_proc2"/>
+	<db-entity name="ARTGROUP">
+		<db-attribute name="GROUP_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="NAME" type="VARCHAR" isMandatory="true" length="100"/>
+		<db-attribute name="PARENT_GROUP_ID" type="INTEGER"/>
+	</db-entity>
+	<db-entity name="ARTIST">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="ARTIST_NAME" type="CHAR" isMandatory="true" length="254"/>
+		<db-attribute name="DATE_OF_BIRTH" type="DATE"/>
+	</db-entity>
+	<db-entity name="ARTIST_CT">
+		<db-attribute name="ARTIST_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="ARTIST_NAME" type="CHAR" isMandatory="true" length="254"/>
+		<db-attribute name="DATE_OF_BIRTH" type="DATE"/>
+	</db-entity>
+	<db-entity name="ARTIST_EXHIBIT">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="EXHIBIT_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+	</db-entity>
+	<db-entity name="ARTIST_GROUP">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="GROUP_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+	</db-entity>
+	<db-entity name="AWARD">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isMandatory="true"/>
+		<db-attribute name="AWARD_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="NAME" type="VARCHAR" length="255"/>
+	</db-entity>
+	<db-entity name="EXHIBIT">
+		<db-attribute name="CLOSING_DATE" type="TIMESTAMP" isMandatory="true"/>
+		<db-attribute name="EXHIBIT_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="GALLERY_ID" type="INTEGER" isMandatory="true"/>
+		<db-attribute name="OPENING_DATE" type="TIMESTAMP" isMandatory="true"/>
+	</db-entity>
+	<db-entity name="GALLERY">
+		<db-attribute name="GALLERY_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="GALLERY_NAME" type="VARCHAR" isMandatory="true" length="100"/>
+	</db-entity>
+	<db-entity name="GENERATED_COLUMN">
+		<db-attribute name="GENERATED_COLUMN" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true"/>
+		<db-attribute name="NAME" type="VARCHAR" length="250"/>
+	</db-entity>
+	<db-entity name="NULL_TEST">
+		<db-attribute name="ID" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true"/>
+		<db-attribute name="NAME" type="VARCHAR" length="100"/>
+	</db-entity>
+	<db-entity name="PAINTING">
+		<db-attribute name="ARTIST_ID" type="BIGINT"/>
+		<db-attribute name="ESTIMATED_PRICE" type="DECIMAL" length="10" scale="2"/>
+		<db-attribute name="GALLERY_ID" type="INTEGER"/>
+		<db-attribute name="PAINTING_DESCRIPTION" type="VARCHAR" length="255"/>
+		<db-attribute name="PAINTING_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="PAINTING_TITLE" type="VARCHAR" isMandatory="true" length="255"/>
+	</db-entity>
+	<db-entity name="PAINTING1">
+		<db-attribute name="ARTIST_ID" type="BIGINT"/>
+		<db-attribute name="ESTIMATED_PRICE" type="DECIMAL" length="10" scale="2"/>
+		<db-attribute name="GALLERY_ID" type="INTEGER"/>
+		<db-attribute name="PAINTING_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="PAINTING_TITLE" type="VARCHAR" isMandatory="true" length="255"/>
+	</db-entity>
+	<db-entity name="PAINTING_INFO">
+		<db-attribute name="IMAGE_BLOB" type="LONGVARBINARY"/>
+		<db-attribute name="PAINTING_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="TEXT_REVIEW" type="LONGVARCHAR"/>
+	</db-entity>
+
+
+	<db-relationship name="artistGroupArray" source="ARTGROUP" target="ARTIST_GROUP" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="GROUP_ID" target="GROUP_ID"/>
+	</db-relationship>
+	<db-relationship name="toChildGroups" source="ARTGROUP" target="ARTGROUP" toMany="true">
+		<db-attribute-pair source="GROUP_ID" target="PARENT_GROUP_ID"/>
+	</db-relationship>
+	<db-relationship name="toParentGroup" source="ARTGROUP" target="ARTGROUP">
+		<db-attribute-pair source="PARENT_GROUP_ID" target="GROUP_ID"/>
+	</db-relationship>
+
+	<db-relationship name="artistAwardArray" source="ARTIST" target="AWARD" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+	<db-relationship name="toArtist" source="AWARD" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+	<db-relationship name="artistExhibitArray" source="ARTIST" target="ARTIST_EXHIBIT" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="artistGroupArray" source="ARTIST" target="ARTIST_GROUP" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="paintingArray" source="ARTIST" target="PAINTING" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="toArtist" source="ARTIST_EXHIBIT" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="toExhibit" source="ARTIST_EXHIBIT" target="EXHIBIT">
+		<db-attribute-pair source="EXHIBIT_ID" target="EXHIBIT_ID"/>
+	</db-relationship>
+	<db-relationship name="toArtist" source="ARTIST_GROUP" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="toGroup" source="ARTIST_GROUP" target="ARTGROUP">
+		<db-attribute-pair source="GROUP_ID" target="GROUP_ID"/>
+	</db-relationship>
+
+	<db-relationship name="artistExhibitArray" source="EXHIBIT" target="ARTIST_EXHIBIT" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="EXHIBIT_ID" target="EXHIBIT_ID"/>
+	</db-relationship>
+	<db-relationship name="toGallery" source="EXHIBIT" target="GALLERY">
+		<db-attribute-pair source="GALLERY_ID" target="GALLERY_ID"/>
+	</db-relationship>
+	<db-relationship name="exhibitArray" source="GALLERY" target="EXHIBIT" toMany="true">
+		<db-attribute-pair source="GALLERY_ID" target="GALLERY_ID"/>
+	</db-relationship>
+	<db-relationship name="paintingArray" source="GALLERY" target="PAINTING" toMany="true">
+		<db-attribute-pair source="GALLERY_ID" target="GALLERY_ID"/>
+	</db-relationship>
+	<db-relationship name="toArtist" source="PAINTING" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="toGallery" source="PAINTING" target="GALLERY">
+		<db-attribute-pair source="GALLERY_ID" target="GALLERY_ID"/>
+	</db-relationship>
+	<db-relationship name="toPaintingInfo" source="PAINTING" target="PAINTING_INFO" toDependentPK="true">
+		<db-attribute-pair source="PAINTING_ID" target="PAINTING_ID"/>
+	</db-relationship>
+	<db-relationship name="toArtist" source="PAINTING1" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+	<db-relationship name="painting" source="PAINTING_INFO" target="PAINTING">
+		<db-attribute-pair source="PAINTING_ID" target="PAINTING_ID"/>
+	</db-relationship>
+
+</data-map>

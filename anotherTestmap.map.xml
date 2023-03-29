@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?><data-map>
+
+	<db-entity name="ARTIST">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="ARTIST_NAME" type="CHAR" isMandatory="true" length="254"/>
+		<db-attribute name="DATE_OF_BIRTH" type="DATE"/>
+	</db-entity>
+
+	<db-entity name="ARTIST_EXHIBIT">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="EXHIBIT_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+	</db-entity>
+
+	<db-entity name="AWARD">
+		<db-attribute name="ARTIST_ID" type="BIGINT" isMandatory="true"/>
+		<db-attribute name="AWARD_ID" type="BIGINT" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="NAME" type="VARCHAR" length="255"/>
+	</db-entity>
+
+	<db-entity name="EXHIBIT">
+		<db-attribute name="CLOSING_DATE" type="TIMESTAMP" isMandatory="true"/>
+		<db-attribute name="EXHIBIT_ID" type="INTEGER" isPrimaryKey="true" isMandatory="true"/>
+		<db-attribute name="GALLERY_ID" type="INTEGER" isMandatory="true"/>
+		<db-attribute name="OPENING_DATE" type="TIMESTAMP" isMandatory="true"/>
+	</db-entity>
+
+
+	<db-relationship name="artistAwardArray" source="ARTIST" target="AWARD" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+	<db-relationship name="toArtist" source="AWARD" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+	<db-relationship name="artistExhibitArray" source="ARTIST" target="ARTIST_EXHIBIT" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+	<db-relationship name="toArtist" source="ARTIST_EXHIBIT" target="ARTIST">
+		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+	</db-relationship>
+
+
+	<db-relationship name="toExhibit" source="ARTIST_EXHIBIT" target="EXHIBIT">
+		<db-attribute-pair source="EXHIBIT_ID" target="EXHIBIT_ID"/>
+	</db-relationship>
+
+	<db-relationship name="artistExhibitArray" source="EXHIBIT" target="ARTIST_EXHIBIT" toDependentPK="true" toMany="true">
+		<db-attribute-pair source="EXHIBIT_ID" target="EXHIBIT_ID"/>
+	</db-relationship>
+
+</data-map>
