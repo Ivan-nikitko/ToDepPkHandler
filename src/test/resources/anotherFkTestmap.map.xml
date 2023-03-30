@@ -9,6 +9,8 @@
 
 	<db-relationship name="toArtist" source="AWARD" target="ARTIST">
 		<db-attribute-pair source="ARTIST_ID" target="ARTIST_ID"/>
+		<db-attribute-pair source="BBB" target="AAA"/>
+		<db-attribute-pair source="DDD" target="CCC"/>
 	</db-relationship>
 
 

@@ -20,15 +20,11 @@ public class FkHandler {
 
     public static void main(String[] args) {
 
-
         try {
-            //  Document doc = loadDocument("simpledTestmap.map.xml");
-            // Document doc = loadDocument("testmap.map.xml");
             Document doc = loadDocument("src/test/resources/fkTestmap.map.xml");
             Document anotherDoc = loadDocument("src/test/resources/anotherFkTestmap.map.xml");
-            //   Document doc = loadDocument("reverseRelationDatamap.map.xml");
-            Element dataMap = doc.getDocumentElement();
 
+            Element dataMap = doc.getDocumentElement();
             Element anotherDataMap = anotherDoc.getDocumentElement();
 
             NodeList relationships = dataMap.getElementsByTagName("db-relationship");
@@ -46,11 +42,15 @@ public class FkHandler {
                     reverseRelationship = findReverseInAnotherDatamaps(Collections.singletonList(anotherDataMap), relationship);
                 }
 
-                if (reverseRelationship == null) {
+                if (reverseRelationship == null && isNotFK(relationship)) {
                     setFk((Element) relationship);
                 }
 
-                if (reverseRelationship != null && !isToDepPK(relationship) && !isToDepPK(reverseRelationship)) {
+                if (reverseRelationship != null
+                        && !isToDepPK(relationship)
+                        && !isToDepPK(reverseRelationship)
+                        && isNotFK(relationship)
+                        && isNotFK(reverseRelationship)) {
                     setFk((Element) relationship, reverseRelationship, combinedDbEntityList);
                 }
 
@@ -73,11 +73,11 @@ public class FkHandler {
             NodeList relationships = dataMap.getElementsByTagName("db-relationship");
             Element reverseRelationship = findReverseRelationship(relationships, relationship);
             if (reverseRelationship != null) {
-                System.out.println("Found in another!");
+                System.out.println("Found revers in another for: " + relationship.getAttributes().getNamedItem("name"));
                 return reverseRelationship;
             }
         }
-        System.out.println("Not found in another");
+        System.out.println("Not found in another for: " + relationship.getAttributes().getNamedItem("name"));
         return null;
     }
 
@@ -87,39 +87,39 @@ public class FkHandler {
     }
 
     private static void setFk(Element relationship, Element reverseRelationship, List<NodeList> combinedDbEntityList) {
-        NamedNodeMap relationshipAttrs = relationship.getAttributes();
-        NamedNodeMap revRelationshipAttrs = reverseRelationship.getAttributes();
 
-        NamedNodeMap dbJoinAttrs = relationship.getFirstChild().getNextSibling().getAttributes();
-        String joinSource = dbJoinAttrs.getNamedItem("source").getNodeValue();
-        String joinTarget = dbJoinAttrs.getNamedItem("target").getNodeValue();
+        NodeList pairNodes = relationship.getElementsByTagName("db-attribute-pair");
+        for (int i = 0; i < pairNodes.getLength(); i++) {
+            String joinSource = pairNodes.item(i).getAttributes().getNamedItem("source").getNodeValue();
+            String joinTarget = pairNodes.item(i).getAttributes().getNamedItem("target").getNodeValue();
 
-        String sourceEntityName = relationshipAttrs.getNamedItem("source").getNodeValue();
-        String targetEntityName = relationshipAttrs.getNamedItem("target").getNodeValue();
+            NamedNodeMap relationshipAttrs = relationship.getAttributes();
 
-        Node sourceEntity = getDbEntityByName(combinedDbEntityList, sourceEntityName);
-        Node targetEntity = getDbEntityByName(combinedDbEntityList, targetEntityName);
+            String sourceEntityName = relationshipAttrs.getNamedItem("source").getNodeValue();
+            String targetEntityName = relationshipAttrs.getNamedItem("target").getNodeValue();
 
-        if (sourceEntity != null && targetEntity != null) {
-            NodeList sourceChildNodes = sourceEntity.getChildNodes();
-            NodeList targetChildNodes = targetEntity.getChildNodes();
+            Node sourceEntity = getDbEntityByName(combinedDbEntityList, sourceEntityName);
+            Node targetEntity = getDbEntityByName(combinedDbEntityList, targetEntityName);
 
-            boolean sourceIsPrimaryKey = isPrimaryKey(joinSource, sourceChildNodes);
-            boolean targetIsPrimaryKey = isPrimaryKey(joinTarget, targetChildNodes);
+            if (sourceEntity != null && targetEntity != null) {
+                NodeList sourceChildNodes = sourceEntity.getChildNodes();
+                NodeList targetChildNodes = targetEntity.getChildNodes();
 
-            //TODO case if both PK or NPK
-            if (sourceIsPrimaryKey != targetIsPrimaryKey) {
-                if (sourceIsPrimaryKey) {
-                    reverseRelationship.setAttribute("fk", "true");
-                    System.out.printf("Set fk=true in %s %n", reverseRelationship.getAttribute("name"));
-                } else {
-                    relationship.setAttribute("fk", "true");
-                    System.out.printf("Set fk=true in %s %n", relationship.getAttribute("name"));
+                boolean sourceIsPrimaryKey = isPrimaryKey(joinSource, sourceChildNodes);
+                boolean targetIsPrimaryKey = isPrimaryKey(joinTarget, targetChildNodes);
+
+                //TODO case if both PK or NPK
+                if (sourceIsPrimaryKey != targetIsPrimaryKey) {
+                    if (sourceIsPrimaryKey) {
+                        reverseRelationship.setAttribute("fk", "true");
+                        System.out.printf("Set fk=true in %s %n", reverseRelationship.getAttribute("name"));
+                    } else {
+                        relationship.setAttribute("fk", "true");
+                        System.out.printf("Set fk=true in %s %n", relationship.getAttribute("name"));
+                    }
+                    return;
                 }
             }
-
-            // System.out.printf("F %s %s %s : %b%n", relationshipAttrs.getNamedItem("name"), relationshipAttrs.getNamedItem("source"), relationshipAttrs.getNamedItem("target"), sourceIsPrimaryKey);
-            //  System.out.printf("R %s %s %s : %b%n", revRelationshipAttrs.getNamedItem("name"), revRelationshipAttrs.getNamedItem("source"), revRelationshipAttrs.getNamedItem("target"), targetIsPrimaryKey);
         }
     }
 
@@ -157,11 +157,18 @@ public class FkHandler {
         return toDependentPK != null && toDependentPK.getNodeValue().equalsIgnoreCase("true");
     }
 
+    private static boolean isNotFK(Node relationship) {
+        NamedNodeMap relationshipAttrs = relationship.getAttributes();
+        Node toDependentPK = relationshipAttrs.getNamedItem("fk");
+        return toDependentPK == null || !toDependentPK.getNodeValue().equalsIgnoreCase("true");
+    }
+
     private static void handleToDepPK(Node relationship, Element reverseRelationship) {
         NamedNodeMap relationshipAttrs = relationship.getAttributes();
         if (reverseRelationship != null) {
             reverseRelationship.setAttribute("fk", "true");
             relationshipAttrs.removeNamedItem("toDependentPK");
+            System.out.println(relationship.getAttributes().getNamedItem("name") + " handled toDepPk");
         }
     }
 
@@ -200,23 +207,6 @@ public class FkHandler {
         return pairs.stream()
                 .allMatch(pair -> candidatePairs.stream().anyMatch(pair::isReverseFor));
     }
-
-//    private static boolean containAllReversed(List<SourceTargetPair> pairs, List<SourceTargetPair> candidatePairs) {
-//        for (SourceTargetPair pair : pairs) {
-//            boolean reversePairFound = false;
-//            for (SourceTargetPair candidatePair : candidatePairs) {
-//                if (pair.isReverse(candidatePair)) {
-//                    reversePairFound = true;
-//                    break;
-//                }
-//            }
-//            if (!reversePairFound) {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
-
 
     private static List<DbAttrPair> getDbAttrPairs(Element dbRelationship) {
         List<DbAttrPair> pairs = new ArrayList<>();
