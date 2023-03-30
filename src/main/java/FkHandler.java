@@ -12,22 +12,30 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class AddAttributeToFkRelationship {
+public class FkHandler {
 
     public static void main(String[] args) {
 
 
         try {
-            //  Document doc = loadDocument("simpleTestmap.map.xml");
-           // Document doc = loadDocument("testmap.map.xml");
-            Document doc = loadDocument("anotherTestmap.map.xml");
-            //   Document doc = loadDocument("Exampletestmap.map.xml");
+            //  Document doc = loadDocument("simpledTestmap.map.xml");
+            // Document doc = loadDocument("testmap.map.xml");
+            Document doc = loadDocument("src/test/resources/fkTestmap.map.xml");
+            Document anotherDoc = loadDocument("src/test/resources/anotherFkTestmap.map.xml");
+            //   Document doc = loadDocument("reverseRelationDatamap.map.xml");
             Element dataMap = doc.getDocumentElement();
 
+            Element anotherDataMap = anotherDoc.getDocumentElement();
+
             NodeList relationships = dataMap.getElementsByTagName("db-relationship");
+
             NodeList dbEntities = dataMap.getElementsByTagName("db-entity");
+            NodeList anotherDbEntities = anotherDataMap.getElementsByTagName("db-entity");
+            List<NodeList> combinedDbEntityList = Arrays.asList(dbEntities, anotherDbEntities);
 
             for (int i = 0; i < relationships.getLength(); i++) {
                 Node relationship = relationships.item(i);
@@ -35,11 +43,15 @@ public class AddAttributeToFkRelationship {
                 Element reverseRelationship = findReverseRelationship(relationships, relationship);
 
                 if (reverseRelationship == null) {
+                    reverseRelationship = findReverseInAnotherDatamaps(Collections.singletonList(anotherDataMap), relationship);
+                }
+
+                if (reverseRelationship == null) {
                     setFk((Element) relationship);
                 }
 
                 if (reverseRelationship != null && !isToDepPK(relationship) && !isToDepPK(reverseRelationship)) {
-                    setFk((Element) relationship, reverseRelationship, dbEntities);
+                    setFk((Element) relationship, reverseRelationship, combinedDbEntityList);
                 }
 
                 if (isToDepPK(relationship)) {
@@ -48,11 +60,25 @@ public class AddAttributeToFkRelationship {
 
             }
 
-            saveUpdatedXML(doc, "output.xml");
+            saveUpdatedXML(doc, "modifiedDatamap.xml");
+            saveUpdatedXML(anotherDoc, "modifiedAnotherDatamap.xml");
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static Element findReverseInAnotherDatamaps(List<Element> dataMaps, Node relationship) {
+        for (Element dataMap : dataMaps) {
+            NodeList relationships = dataMap.getElementsByTagName("db-relationship");
+            Element reverseRelationship = findReverseRelationship(relationships, relationship);
+            if (reverseRelationship != null) {
+                System.out.println("Found in another!");
+                return reverseRelationship;
+            }
+        }
+        System.out.println("Not found in another");
+        return null;
     }
 
 
@@ -60,7 +86,7 @@ public class AddAttributeToFkRelationship {
         System.out.println("Reverse not found for: " + relationship.getAttribute("name"));
     }
 
-    private static void setFk(Element relationship, Element reverseRelationship, NodeList dbEntities) {
+    private static void setFk(Element relationship, Element reverseRelationship, List<NodeList> combinedDbEntityList) {
         NamedNodeMap relationshipAttrs = relationship.getAttributes();
         NamedNodeMap revRelationshipAttrs = reverseRelationship.getAttributes();
 
@@ -71,8 +97,8 @@ public class AddAttributeToFkRelationship {
         String sourceEntityName = relationshipAttrs.getNamedItem("source").getNodeValue();
         String targetEntityName = relationshipAttrs.getNamedItem("target").getNodeValue();
 
-        Node sourceEntity = getDbEntityByName(dbEntities, sourceEntityName);
-        Node targetEntity = getDbEntityByName(dbEntities, targetEntityName);
+        Node sourceEntity = getDbEntityByName(combinedDbEntityList, sourceEntityName);
+        Node targetEntity = getDbEntityByName(combinedDbEntityList, targetEntityName);
 
         if (sourceEntity != null && targetEntity != null) {
             NodeList sourceChildNodes = sourceEntity.getChildNodes();
@@ -85,13 +111,15 @@ public class AddAttributeToFkRelationship {
             if (sourceIsPrimaryKey != targetIsPrimaryKey) {
                 if (sourceIsPrimaryKey) {
                     reverseRelationship.setAttribute("fk", "true");
+                    System.out.printf("Set fk=true in %s %n", reverseRelationship.getAttribute("name"));
                 } else {
                     relationship.setAttribute("fk", "true");
+                    System.out.printf("Set fk=true in %s %n", relationship.getAttribute("name"));
                 }
             }
 
-            System.out.printf("F %s %s %s : %b%n", relationshipAttrs.getNamedItem("name"), relationshipAttrs.getNamedItem("source"), relationshipAttrs.getNamedItem("target"), sourceIsPrimaryKey);
-            System.out.printf("R %s %s %s : %b%n", revRelationshipAttrs.getNamedItem("name"), revRelationshipAttrs.getNamedItem("source"), revRelationshipAttrs.getNamedItem("target"), targetIsPrimaryKey);
+            // System.out.printf("F %s %s %s : %b%n", relationshipAttrs.getNamedItem("name"), relationshipAttrs.getNamedItem("source"), relationshipAttrs.getNamedItem("target"), sourceIsPrimaryKey);
+            //  System.out.printf("R %s %s %s : %b%n", revRelationshipAttrs.getNamedItem("name"), revRelationshipAttrs.getNamedItem("source"), revRelationshipAttrs.getNamedItem("target"), targetIsPrimaryKey);
         }
     }
 
@@ -111,11 +139,13 @@ public class AddAttributeToFkRelationship {
         return false;
     }
 
-    private static Node getDbEntityByName(NodeList dbEntities, String searchedEntityName) {
-        for (int i = 0; i < dbEntities.getLength(); i++) {
-            String entityName = dbEntities.item(i).getAttributes().getNamedItem("name").getNodeValue();
-            if (searchedEntityName.equals(entityName)) {
-                return dbEntities.item(i);
+    private static Node getDbEntityByName(List<NodeList> combinedDbEntityList, String searchedEntityName) {
+        for (NodeList list : combinedDbEntityList) {
+            for (int i = 0; i < list.getLength(); i++) {
+                String entityName = list.item(i).getAttributes().getNamedItem("name").getNodeValue();
+                if (searchedEntityName.equals(entityName)) {
+                    return list.item(i);
+                }
             }
         }
         return null;
@@ -127,14 +157,6 @@ public class AddAttributeToFkRelationship {
         return toDependentPK != null && toDependentPK.getNodeValue().equalsIgnoreCase("true");
     }
 
-    private static void saveUpdatedXML(Document doc, String path) throws TransformerException {
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = transformerFactory.newTransformer();
-        DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(new File(path));
-        transformer.transform(source, result);
-    }
-
     private static void handleToDepPK(Node relationship, Element reverseRelationship) {
         NamedNodeMap relationshipAttrs = relationship.getAttributes();
         if (reverseRelationship != null) {
@@ -143,20 +165,11 @@ public class AddAttributeToFkRelationship {
         }
     }
 
-    private static Document loadDocument(String path) throws ParserConfigurationException, SAXException, IOException {
-        File inputFile = new File(path);
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(inputFile);
-        doc.getDocumentElement().normalize();
-        return doc;
-    }
-
     private static Element findReverseRelationship(NodeList dbRelationshipList, Node dbRelationshipNode) {
         Element dbRelationship = (Element) dbRelationshipNode;
 
-        String source = dbRelationship.getAttribute("source");
-        String target = dbRelationship.getAttribute("target");
+        String sourceAttr = dbRelationship.getAttribute("source");
+        String targetAttr = dbRelationship.getAttribute("target");
 
         List<DbAttrPair> pairs = getDbAttrPairs(dbRelationship);
 
@@ -165,17 +178,17 @@ public class AddAttributeToFkRelationship {
             if (candidateDbRelationshipNode.getNodeType() == Node.ELEMENT_NODE) {
                 Element candidateDbRelationship = (Element) candidateDbRelationshipNode;
 
-                String candidateSource = candidateDbRelationship.getAttribute("source");
-                String candidateTarget = candidateDbRelationship.getAttribute("target");
+                String candidateSourceAttr = candidateDbRelationship.getAttribute("source");
+                String candidateTargetAttr = candidateDbRelationship.getAttribute("target");
 
                 List<DbAttrPair> candidatePairs = getDbAttrPairs(candidateDbRelationship);
 
-                if (source.equals(candidateTarget)
-                        && target.equals(candidateSource)
+                if (sourceAttr.equals(candidateTargetAttr)
+                        && targetAttr.equals(candidateSourceAttr)
                         && pairs.size() == candidatePairs.size()
-                        && containAllReversed(pairs,candidatePairs)) {
+                        && containAllReversed(pairs, candidatePairs)) {
 
-                    System.out.println("Found reverse for "+dbRelationship.getAttribute("name")+": " +candidateDbRelationship.getAttribute("name") );
+                    System.out.println("Found reverse for " + dbRelationship.getAttribute("name") + ": " + candidateDbRelationship.getAttribute("name"));
                     return candidateDbRelationship;
                 }
             }
@@ -205,10 +218,8 @@ public class AddAttributeToFkRelationship {
 //    }
 
 
-
-    private static List<DbAttrPair> getDbAttrPairs(Element dbRelationship){
+    private static List<DbAttrPair> getDbAttrPairs(Element dbRelationship) {
         List<DbAttrPair> pairs = new ArrayList<>();
-
         NodeList attributes = dbRelationship.getElementsByTagName("db-attribute-pair");
         for (int j = 0; j < attributes.getLength(); j++) {
             Node attributeNode = attributes.item(j);
@@ -216,16 +227,34 @@ public class AddAttributeToFkRelationship {
                 Element element = (Element) attributeNode;
                 String pairSource = element.getAttribute("source");
                 String pairTarget = element.getAttribute("target");
-                pairs.add(new DbAttrPair(pairSource,pairTarget));
+                pairs.add(new DbAttrPair(pairSource, pairTarget));
             }
         }
         return pairs;
+    }
+
+    private static Document loadDocument(String path) throws ParserConfigurationException, SAXException, IOException {
+        File inputFile = new File(path);
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+        Document doc = dBuilder.parse(inputFile);
+        doc.getDocumentElement().normalize();
+        return doc;
+    }
+
+    private static void saveUpdatedXML(Document doc, String path) throws TransformerException {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(new File(path));
+        transformer.transform(source, result);
     }
 
 
     private static class DbAttrPair {
         private final String source;
         private final String target;
+
         public DbAttrPair(String source, String target) {
             this.source = source;
             this.target = target;

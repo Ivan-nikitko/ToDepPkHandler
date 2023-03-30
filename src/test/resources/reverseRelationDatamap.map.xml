@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-map >
+
+
+	<db-relationship name="correctToXYZt" source="ABC" target="XYZ">
+		<db-attribute-pair source="A" target="B"/>
+		<db-attribute-pair source="C" target="D"/>
+	</db-relationship>
+
+	<db-relationship name="correctToABC" source="XYZ" target="ABC">
+		<db-attribute-pair source="D" target="C"/>
+		<db-attribute-pair source="B" target="A"/>
+	</db-relationship>
+
+
+
+	<db-relationship name="incorrectToXYZt" source="ABC" target="XYZ">
+		<db-attribute-pair source="A" target="B"/>
+		<db-attribute-pair source="C" target="D"/>
+	</db-relationship>
+
+	<db-relationship name="incorrectToABC" source="XYZ" target="ABC">
+		<db-attribute-pair source="D" target="C"/>
+		<db-attribute-pair source="B" target="A"/>
+	</db-relationship>
+
+
+</data-map>
